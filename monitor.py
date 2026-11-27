@@ -40,7 +40,7 @@ DATE_RE = re.compile(
     r"October|November|December)\s+(\d{4})\b")
 
 MAX_ALERTS_PER_RUN = 5          # guards against an email flood if state is ever lost
-FAIL_ALERT_AFTER = 12           # consecutive failed runs before a "can't reach site" email
+FAIL_ALERT_AFTER = 36           # consecutive failed runs (~3 h at 5-min checks) before a "can't reach site" email
 GEMINI_MODELS = [m.strip() for m in os.environ.get(
     "GEMINI_MODEL", "gemini-flash-latest,gemini-flash-lite-latest").split(",") if m.strip()]
 ARTICLE_CHARS = 12000           # article text sent to Gemini

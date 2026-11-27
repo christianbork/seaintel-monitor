@@ -2,11 +2,12 @@ name: Sea-Intelligence press room monitor
 
 on:
   schedule:
-    # UTC. Every 20 min 06:00-18:59 UTC on weekdays (07-20 Copenhagen in winter),
-    # plus every 3 hours around the clock to catch off-hours releases.
-    # GitHub often starts scheduled runs 5-30 min late.
-    - cron: "*/20 6-18 * * 1-5"
-    - cron: "17 */3 * * *"
+    # UTC. Public repo, so Actions minutes are free. Every 5 min 06:00-18:59 UTC on
+    # weekdays (07-20 Copenhagen in winter), every 30 min otherwise. GitHub may
+    # start scheduled runs late or skip some under load.
+    - cron: "*/5 6-18 * * 1-5"
+    - cron: "17,47 0-5,19-23 * * 1-5"
+    - cron: "17,47 * * * 0,6"
   workflow_dispatch:
     inputs:
       mode:

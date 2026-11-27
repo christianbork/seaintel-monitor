@@ -14,17 +14,17 @@ the email shows the article's opening paragraphs instead.
 Sea-Intelligence has no API, webhook or alert email for the press room, so the job
 checks the page:
 
-- every 20 minutes, 06:00–19:00 UTC on weekdays (07:00–20:00 Copenhagen in winter)
-- every 3 hours around the clock, for off-hours releases
+- every 5 minutes, 06:00–19:00 UTC on weekdays (07:00–20:00 Copenhagen in winter)
+- every 30 minutes the rest of the time
 
 Each release URL has an increasing ID (`/press-room/422-...`). Any ID above the last
 one seen (`state/state.json`) gets one email, and the state is committed back to the
-repo. If the page can't be read for 12 checks in a row (about 4 hours), you get one
+repo. If the page can't be read for 36 checks in a row (about 3 hours), you get one
 warning email, plus another once it recovers. That way a silent failure can't pass
 for "no news". If sending the email fails, the release is retried on the next run.
 
-GitHub often starts scheduled runs 5–30 minutes late, so expect an email roughly
-10–40 minutes after a release goes up.
+GitHub sometimes starts scheduled runs late or skips some when busy, so expect an
+email usually within 5–20 minutes of a release.
 
 ## Setup (secrets)
 
@@ -52,8 +52,10 @@ is a public press release.
 
 ## Cost
 
-GitHub Actions on a private repo includes 2,000 free minutes a month. This job uses
-about 1,100 (each run rounds up to 1 minute), and it shares that quota with
-ifo-monitor. To check more often (e.g. every 5 minutes), make the repo public, where
-Actions minutes are free and unlimited. Secrets stay private, and the state file
-only holds a release number.
+The repo is public, so GitHub Actions minutes are free and unlimited. Secrets stay
+private. The code and `state/state.json` (just a release number) are visible.
+
+GitHub automatically disables scheduled workflows in public repos after 60 days with
+no repository activity. The state commit made on each new release counts as activity,
+so this shouldn't happen. If it ever does, GitHub emails you, and you re-enable it
+under Actions.
