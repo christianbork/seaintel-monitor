@@ -35,6 +35,7 @@ Go to repo → Settings → Secrets and variables → Actions → *New repositor
 | `EMAIL_USER` | the Gmail address that sends the email |
 | `EMAIL_PASS` | a Gmail **app password** for that account (Google Account → Security → App passwords) |
 | `EMAIL_TO` | where alerts go (can be the same address) |
+| `EMAIL_TO2` | optional second recipient |
 | `GEMINI_API_KEY` | free key from https://aistudio.google.com/apikey (optional, but no summary without it) |
 
 You can reuse the same `EMAIL_*` values as ifo-monitor. The model defaults to

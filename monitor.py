@@ -206,15 +206,20 @@ def _mask(addr: str) -> str:
 
 
 def send_email(subject: str, text: str, body_html: str | None = None) -> bool:
-    user, password, to = (os.environ.get(k, "").strip() for k in ("EMAIL_USER", "EMAIL_PASS", "EMAIL_TO"))
+    user, password = (os.environ.get(k, "").strip() for k in ("EMAIL_USER", "EMAIL_PASS"))
     password = password.replace(" ", "")      # Gmail app passwords are shown in groups of 4
-    if not (user and password and to):
+    recipients = []
+    for k in ("EMAIL_TO", "EMAIL_TO2"):       # EMAIL_TO2 is optional
+        addr = os.environ.get(k, "").strip()
+        if addr and addr not in recipients:
+            recipients.append(addr)
+    if not (user and password and recipients):
         print("Email not configured (EMAIL_USER / EMAIL_PASS / EMAIL_TO).")
         return False
-    print(f"Email from {_mask(user)} to {_mask(to)}, app password {len(password)} chars "
-          "(a Gmail app password is 16).")
+    print(f"Email from {_mask(user)} to {', '.join(_mask(a) for a in recipients)}, "
+          f"app password {len(password)} chars (a Gmail app password is 16).")
     msg = EmailMessage()
-    msg["Subject"], msg["From"], msg["To"] = subject, user, to
+    msg["Subject"], msg["From"], msg["To"] = subject, user, ", ".join(recipients)
     msg.set_content(text)
     if body_html:
         msg.add_alternative(body_html, subtype="html")

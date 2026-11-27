@@ -43,6 +43,7 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_TO2: ${{ secrets.EMAIL_TO2 }}
           MODE: ${{ github.event.inputs.mode }}
         run: |
           if [ "$MODE" = "test" ]; then python monitor.py --test

@@ -133,3 +133,22 @@ def test_state_roundtrip(tmp_path, monkeypatch):
     m.save_state({"last_id": 5})
     assert json.loads((tmp_path / "s.json").read_text()) == {"last_id": 5}
     assert m.load_state() == {"last_id": 5}
+
+
+def test_second_recipient(monkeypatch):
+    sent = {}
+
+    class FakeSMTP:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def login(self, u, p): pass
+        def send_message(self, msg): sent["to"] = msg["To"]
+
+    monkeypatch.setattr(m.smtplib, "SMTP_SSL", FakeSMTP)
+    monkeypatch.setenv("EMAIL_USER", "a@gmail.com")
+    monkeypatch.setenv("EMAIL_PASS", "abcd efgh ijkl mnop")
+    monkeypatch.setenv("EMAIL_TO", "b@seb.dk")
+    monkeypatch.setenv("EMAIL_TO2", "c@example.com")
+    assert m.send_email("s", "t")
+    assert sent["to"] == "b@seb.dk, c@example.com"
