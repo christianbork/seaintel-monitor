@@ -129,7 +129,7 @@ Article:
 
 
 def summarise(session, art: dict) -> str | None:
-    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    key = os.environ.get("GEMINI_API_KEY", "").strip().strip('"').strip("'")
     if not key or not art["paragraphs"]:
         return None
     prompt = PROMPT.format(title=art["title"], date=art["date"],
@@ -142,7 +142,13 @@ def summarise(session, art: dict) -> str | None:
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
                 headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                 json=payload, timeout=90)
-            r.raise_for_status()
+            if r.status_code >= 400:
+                try:
+                    err = r.json().get("error", {})
+                    detail = f"{err.get('status', '')}: {err.get('message', '')}"
+                except ValueError:
+                    detail = r.text[:200]
+                raise RuntimeError(f"HTTP {r.status_code} {detail}")
             parts = r.json()["candidates"][0]["content"]["parts"]
             text = "".join(p.get("text", "") for p in parts).strip()
             if text:
@@ -191,25 +197,48 @@ def build_email(item: dict, art: dict, summary: str | None, test: bool = False) 
     return subject, text, body_html
 
 
+def _mask(addr: str) -> str:
+    """Shape of an address for logs, e.g. 'ch***@gmail.com', never the full secret."""
+    if "@" not in addr:
+        return f"<not an email address, {len(addr)} chars>"
+    name, domain = addr.split("@", 1)
+    return f"{name[:2]}***@{domain}"
+
+
 def send_email(subject: str, text: str, body_html: str | None = None) -> bool:
     user, password, to = (os.environ.get(k, "").strip() for k in ("EMAIL_USER", "EMAIL_PASS", "EMAIL_TO"))
+    password = password.replace(" ", "")      # Gmail app passwords are shown in groups of 4
     if not (user and password and to):
         print("Email not configured (EMAIL_USER / EMAIL_PASS / EMAIL_TO).")
         return False
+    print(f"Email from {_mask(user)} to {_mask(to)}, app password {len(password)} chars "
+          "(a Gmail app password is 16).")
     msg = EmailMessage()
     msg["Subject"], msg["From"], msg["To"] = subject, user, to
     msg.set_content(text)
     if body_html:
         msg.add_alternative(body_html, subtype="html")
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=60) as smtp:
-            smtp.login(user, password)
-            smtp.send_message(msg)
-        print("Email sent.")
-        return True
-    except Exception as e:
-        print(f"Email failed: {e}")
-        return False
+    errors = []
+    for port in (465, 587):
+        try:
+            if port == 465:
+                smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=60)
+            else:
+                smtp = smtplib.SMTP("smtp.gmail.com", 587, timeout=60)
+                smtp.starttls()
+            with smtp:
+                smtp.login(user, password)
+                smtp.send_message(msg)
+            print(f"Email sent (port {port}).")
+            return True
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"Email failed: Gmail rejected the login ({e.smtp_code}). Check EMAIL_USER is the full "
+                  "Gmail address and EMAIL_PASS is a 16-character app password for that same account.")
+            return False
+        except Exception as e:
+            errors.append(f"port {port}: {type(e).__name__}: {e}")
+    print("Email failed: " + " | ".join(errors))
+    return False
 
 
 # --------------------------------------------------------------------------- state
